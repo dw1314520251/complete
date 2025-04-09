@@ -1,0 +1,6 @@
+c:\Users\dw\Desktop\text\app.js
+App({
+  onLaunch: function () {
+    // 小程序启动时执行的代码
+  }
+})

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Scene Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f4f4f9;
+            margin: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .container {
+            text-align: left;
+            width: 100%;
+        }
+
+        .sctp {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .upload-area {
+            background-color: #fcecf7;
+            /* 淡紫色 */
+            border-radius: 10px;
+            padding: 70px 20px;
+            margin-bottom: 20px;
+            border: 1.2px dashed #bd61ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            /* 添加鼠标指针样式 */
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-area label {
+            cursor: pointer;
+            color: #6a0dad;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+            /* 确保标签宽度占满整个区域 */
+            height: 100%;
+            /* 确保标签高度占满整个区域 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-area img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .generate-button {
+            background-color: #6a0dad;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 360px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .preview-container {
+            position: relative;
+            margin-top: 20px;
+            max-width: 100%;
+            background-color: #f4f4f9;
+            border-radius: 8px;
+        }
+
+        .preview-image {
+            display: none;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .delete-icon {
+            position: absolute;
+            /* 相对于容器定位 */
+            top: 8px;
+            /* 调整顶部距离 */
+            right: 8px;
+            /* 调整右侧距离 */
+            background: white;
+            color: #6a0dad;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 10;
+            /* 确保在图片上方 */
+            transition: all 0.2s ease;
+        }
+
+        .delete-icon:hover {
+            background: #f5f5f5;
+            transform: scale(1.05);
+        }
+
+        .download-icon {
+            position: absolute;
+            /* 相对于容器定位 */
+            top: 8px;
+            /* 调整顶部距离 */
+            right: 96px; /* 调整右侧距离，使其在删除按钮左边 */
+            background: white;
+            color: #6a0dad;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 10;
+            /* 确保在图片上方 */
+            transition: all 0.2s ease;
+        }
+        .download-icon:hover {
+            background: #f5f5f5;
+            transform: scale(1.05);
+        }
+
+        .text-input {
+            display: none;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            resize: vertical;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+        .tpxsd {
+            width: 80px;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        /* 新增蒙版样式 */
+        .overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            z-index: 20;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* 新增提示文字样式 */
+        .overlay-text {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+
+        /* 新增缩略图容器样式 */
+        .thumbnail-container {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        /* 新增缩略图样式 */
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .thumbnail.active {
+            border-color: #6a0dad;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="sctp" id="Sctp1">
+            <p>
+                <div><strong>上传图片</strong></div>
+            </p>
+            <p>选择你想要生成的图片.</p>
+        </div>
+        <br>
+        <div class="upload-area" id="uploadArea">
+            <label for="imageUpload">
+                <span>选择图片</span>
+            </label>
+            <input type="file" id="imageUpload" accept="image/*" name="image">
+        </div>
+        <div class="preview-container">
+            <img class="preview-image" id="fullPreview" src="" alt="Full Preview Image">
+            <span class="download-icon" id="downloadIcon" style="display: none;">下载</span>
+            <span class="delete-icon" id="deleteIcon" style="display: none;">✖ 重新选择</span>
+            <!-- 新增蒙版、提示文字和进度条 -->
+            <div class="overlay" id="overlay">
+                <div class="overlay-text">图片生成中</div>
+            </div>
+        </div>
+        <!-- 新增缩略图容器 -->
+        <div class="thumbnail-container" id="thumbnailContainer"></div>
+        <div class="text-input" id="textInput">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                相似度<br>(越小越像)
+                <input type="range" id="strengthSlider" min="0" max="1" step="0.01" value="0.3" style="flex: 1;">
+                <input class="tpxsd" type="number" id="strengthInput" min="0" max="1" step="0.01" value="0.3" >
+            </div>
+            
+            <script>
+                const slider = document.getElementById('strengthSlider');
+                const input = document.getElementById('strengthInput');
+            
+                // 初始化同步
+                function syncValues() {
+                    const value = parseFloat(slider.value).toFixed(2);
+                    input.value = value;
+                    slider.value = value;
+                }
+            
+                // 滑块变化时更新输入框
+                slider.addEventListener('input', () => {
+                    syncValues();
+                });
+            
+                // 输入框变化时更新滑块
+                input.addEventListener('input', (e) => {
+                    let value = parseFloat(e.target.value);
+                    if (isNaN(value) || value < 0 || value > 1) {
+                        value = 0.3; // 默认值
+                    }
+                    slider.value = value.toFixed(2);
+                    syncValues();
+                });
+            </script>
+            <br>
+            <textarea placeholder="请输入您想要的风格提示，例：设计一个新中式的花园，有美丽的植物和泰山石点缀"></textarea>
+        </div>
+        <br>
+        <br>
+        <br>
+    </div>
+
+    <button class="generate-button" onclick="generateScene()">生成图片</button>
+
+    <script>
+        let uploadedImageUrl = '';
+        let generatedImageUrls = []; // 存储所有生成的图片 URL
+    
+        document.getElementById('imageUpload').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 检查文件大小
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('图片大小不能超过 5 MB，请重新选择。');
+                    return;
+                }
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = function () {
+                    const maxWidth = 4096;
+                    const maxHeight = 4096;
+                    const maxResolution = 16777216;
+                    let width = img.width;
+                    let height = img.height;
+                    // 检查分辨率
+                    if (width * height > maxResolution) {
+                        const ratio = Math.sqrt(maxResolution / (width * height));
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
+                    }
+                    // 检查最大尺寸
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(blob => {
+        const compressedFile = new File([blob], file.name, { 
+          type: file.type, 
+          lastModified: Date.now() 
+        });
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            const previewImage = document.getElementById('fullPreview');
+                            previewImage.src = e.target.result;
+                            uploadedImageUrl = e.target.result;
+                            previewImage.style.display = 'block';
+                            document.getElementById('uploadArea').style.display = 'none';
+                            document.getElementById('Sctp1').style.display = 'none';
+                            document.getElementById('textInput').style.display = 'block';
+                            document.getElementById('deleteIcon').style.display = 'block';
+                            document.getElementById('downloadIcon').style.display = 'block'; // 显示下载按钮
+                            // 清空缩略图容器并创建上传图片的缩略图（标记为上传图片，设置 isUploaded=true）
+                            const thumbnailContainer = document.getElementById('thumbnailContainer');
+                            thumbnailContainer.innerHTML = '';
+                            const uploadedThumbnail = createThumbnail(uploadedImageUrl, true);
+                            thumbnailContainer.appendChild(uploadedThumbnail);
+                            uploadedThumbnail.classList.add('active'); // 初始选中上传的图片
+                        };
+                        reader.readAsDataURL(compressedFile);
+                    }, 'image/jpeg', 0.8);
+                };
+            }
+        });
+    
+        document.getElementById('deleteIcon').addEventListener('click', function () {
+            document.getElementById('fullPreview').src = '';
+            document.getElementById('fullPreview').style.display = 'none';
+            document.getElementById('uploadArea').style.display = 'flex';
+            document.getElementById('Sctp1').style.display = 'block';
+            document.getElementById('textInput').style.display = 'none';
+            document.getElementById('deleteIcon').style.display = 'none';
+            document.getElementById('downloadIcon').style.display = 'none'; // 隐藏下载按钮
+            uploadedImageUrl = '';
+            generatedImageUrls = []; // 清空生成的图片列表
+            const thumbnailContainer = document.getElementById('thumbnailContainer');
+            thumbnailContainer.innerHTML = '';
+        });
+    
+        document.getElementById('downloadIcon').addEventListener('click', function () {
+            const a = document.createElement('a');
+            a.href = uploadedImageUrl;
+            a.download = 'uploaded_image.jpg';
+            a.click();
+        });
+    
+        async function generateScene() {
+            const stylePrompt = document.querySelector('.text-input textarea').value;
+            const strength = parseFloat(document.getElementById('strengthInput').value);
+            const fileInput = document.getElementById('imageUpload');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请先上传图片');
+                return;
+            }
+            if (isNaN(strength) || strength < 0 || strength > 1) {
+                alert('强度值必须在 0 到 1 之间');
+                return;
+            }
+            // 显示蒙版
+            const overlay = document.getElementById('overlay');
+            overlay.style.display = 'flex';
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('prompt', stylePrompt);
+            formData.append('strength', strength);
+            try {
+                const response = await fetch('http://localhost:3000/generate-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    const generatedImageUrl = result.output; // 假设后端返回的字段为output
+                    generatedImageUrls.push(generatedImageUrl); // 存储生成的图片 URL
+                    // 创建生成图片的缩略图（isUploaded=false）
+                    const thumbnail = createThumbnail(generatedImageUrl);
+                    document.getElementById('thumbnailContainer').appendChild(thumbnail);
+                    // 生成后默认选中最新的图片（可选，根据需求调整）
+                    thumbnail.click(); // 自动点击新生成的缩略图，显示预览
+                }
+            } catch (error) {
+                console.error('生成图片时出错:', error);
+                alert('图片生成失败，请稍后重试');
+            } finally {
+                // 隐藏蒙版
+                const overlay = document.getElementById('overlay');
+                overlay.style.display = 'none';
+            }
+        }
+    
+        function createThumbnail(imageUrl, isUploaded = false) {
+            const thumbnail = document.createElement('img');
+            thumbnail.src = imageUrl;
+            thumbnail.classList.add('thumbnail');
+            
+            // 添加点击事件：切换预览图并更新 active 状态
+            thumbnail.addEventListener('click', function () {
+                const thumbnailContainer = document.getElementById('thumbnailContainer');
+                const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+                
+                // 移除所有缩略图的 active 状态
+                thumbnails.forEach(t => t.classList.remove('active'));
+                this.classList.add('active'); // 当前缩略图激活
+                
+                // 根据类型设置预览图
+                if (isUploaded) {
+                    // 上传的原始图片
+                    document.getElementById('fullPreview').src = uploadedImageUrl;
+                } else {
+                    // 生成的图片（通过索引匹配 URL）
+                    const index = generatedImageUrls.indexOf(imageUrl);
+                    if (index !== -1) {
+                        document.getElementById('fullPreview').src = generatedImageUrls[index];
+                    }
+                }
+            });
+    
+            return thumbnail;
+        }
+    </script>
+</body>
+
+</html>
